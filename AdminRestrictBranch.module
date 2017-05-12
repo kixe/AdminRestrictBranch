@@ -38,7 +38,7 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
      */
     protected $data = array();
     protected $restrictionEnabled = false;
-    protected $branchRootParentId = '';
+    protected $branchRootParentId = 1;
     protected $noMatch = false;
 
 
@@ -84,7 +84,10 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
 
         // if the matched branch parent is home (this can actually also mean there was no match) and non-matching users
         // are allowed to view 'all' then exit because we don't need to do anything else with this module
-        if($this->branchRootParentId === 1 && $this->data['allOrNone'] == 'all') return;
+        if($this->branchRootParentId === 1 && $this->data['allOrNone'] == 'all') {
+            var_dump('hello');
+            return;
+        }
 
         // modify $page->editable() and $page->addable() based on branch restrictions - works in admin and front-end (for FREDI, FEEL, etc)
         $this->addHookAfter('Page::editable', $this, 'hookPageEditable');
@@ -98,6 +101,7 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
     }
 
     public function ready() {
+        $this->wire('config')->rootPageID = $this->branchRootParentId;
 
         // exit if enabled not true from init()
         if(!$this->restrictionEnabled) return;
@@ -134,7 +138,8 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
             if(!$this->onAllowedBranches($this->wire('pages')->get((int)$pid))) {
                 $this->wire('breadcrumbs')->pop();
                 //add a "Pages" breadcrumb so it is easy to get back to the main PageList view
-                if($this->wire('breadcrumbs')->count() == 0) {
+                if ($this->branchRootParentId == $this->wire('input')->id) {
+                //if($event->wire('breadcrumbs')->count() == 0) {
                     $this->wire('breadcrumbs')->add(new Breadcrumb($this->wire('config')->urls->admin . '/page/', 'Pages'));
                 }
             }
@@ -231,7 +236,7 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
         }
     }
 
-    private function getBranchRootParentId() {
+    protected function ___getBranchRootParentId() {
 
         if(isset($this->data['branchesParent']) && $this->data['branchesParent']) {
             $branchesParentSelector = "has_parent=".$this->data['branchesParent'].", ";
