@@ -119,6 +119,7 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
 
             // modify ProcessPageList::pageLabelField
             $this->addHookBefore('ProcessPageList::execute', $this, 'modifyPageLabelField');
+            $this->addHookBefore('ProcessPageList::executeNavJSON', $this, 'modifyPageLabelField');
 
             //make Add New button respect branch restrictions
             $this->addHookAfter('ProcessPageAdd::executeNavJSON', $this, 'restrictPageAdd');
