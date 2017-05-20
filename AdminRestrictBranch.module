@@ -55,7 +55,8 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
                 "branchExclusions" => null,
                 "restrictType" => 'editing_and_view',
                 "restrictFromSearch" => null,
-                "modifyBreadcrumbs" => null
+                "modifyBreadcrumbs" => null,
+                "rootPageLabelField" => null
             );
     }
 
@@ -85,7 +86,6 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
         // if the matched branch parent is home (this can actually also mean there was no match) and non-matching users
         // are allowed to view 'all' then exit because we don't need to do anything else with this module
         if($this->branchRootParentId === 1 && $this->data['allOrNone'] == 'all') {
-            var_dump('hello');
             return;
         }
 
@@ -117,6 +117,9 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
             //modify breadcrumbs to remove pages outside restricted branch
             if($this->data['modifyBreadcrumbs']) $this->addHookAfter('Process::breadcrumb', $this, 'modifyBreadcrumb');
 
+            // modify ProcessPageList::pageLabelField
+            $this->addHookBefore('ProcessPageList::execute', $this, 'modifyPageLabelField');
+
             //make Add New button respect branch restrictions
             $this->addHookAfter('ProcessPageAdd::executeNavJSON', $this, 'restrictPageAdd');
             $this->addHookBefore('ProcessPageList::executeNavJSON', $this, 'restrictPageList');
@@ -144,6 +147,11 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
                 }
             }
         }
+    }
+
+    protected function modifyPageLabelField($event) {
+        if (!$this->rootPageLabelField) return;
+        $this->wire('pages')->get($this->branchRootParentId)->template->pageLabelField = $this->rootPageLabelField;
     }
 
     protected function restrictPageAdd($event) {
@@ -436,6 +444,12 @@ class AdminRestrictBranch extends WireData implements Module, ConfigurableModule
         $f->attr('checked', $data['modifyBreadcrumbs'] == '1' ? 'checked' : '' );
         $wrapper->add($f);
 
+        $f = $this->wire('modules')->get("InputfieldText");
+        $f->attr('name', 'rootPageLabelField');
+        $f->label = __('Modify Label Field for the branch root parent', __FILE__);
+        $f->description = __('Enter one or more field names assigned to the root page template to display in the admin Page List when listing pages. Overwrites template settings.', __FILE__);
+        $f->value = $data['rootPageLabelField'];
+        $wrapper->add($f);
         return $wrapper;
     }
 
